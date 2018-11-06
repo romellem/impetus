@@ -21,7 +21,7 @@
 
     // fixes weird safari 10 bug where preventDefault is prevented
     // @see https://github.com/metafizzy/flickity/issues/457#issuecomment-254501356
-    window.addEventListener('touchmove', function () {});
+    window.addEventListener('touchmove', function () {}, getPassiveSupported() ? { passive: false } : false);
 
     var Impetus = function Impetus(_ref) {
         var _ref$source = _ref.source;
@@ -42,6 +42,8 @@
         var boundXmin, boundXmax, boundYmin, boundYmax, pointerLastX, pointerLastY, pointerCurrentX, pointerCurrentY, pointerId, decVelX, decVelY;
         var targetX = 0;
         var targetY = 0;
+        var prevTargetX = null;
+        var prevTargetY = null;
         var stopThreshold = stopThresholdDefault * multiplier;
         var ticking = false;
         var pointerActive = false;
@@ -82,8 +84,8 @@
                 boundYmax = boundY[1];
             }
 
-            sourceEl.addEventListener('touchstart', onDown);
-            sourceEl.addEventListener('mousedown', onDown);
+            sourceEl.addEventListener('touchstart', onDown, getPassiveSupported() ? { passive: true } : false);
+            sourceEl.addEventListener('mousedown', onDown, getPassiveSupported() ? { passive: true } : false);
         })();
 
         /**
@@ -188,17 +190,19 @@
 
             // @see https://developers.google.com/web/updates/2017/01/scrolling-intervention
             document.addEventListener('touchmove', onMove, getPassiveSupported() ? { passive: false } : false);
-            document.addEventListener('touchend', onUp);
-            document.addEventListener('touchcancel', stopTracking);
+            document.addEventListener('touchend', onUp, getPassiveSupported() ? { passive: true } : false);
+            document.addEventListener('touchcancel', stopTracking, getPassiveSupported() ? { passive: true } : false);
             document.addEventListener('mousemove', onMove, getPassiveSupported() ? { passive: false } : false);
-            document.addEventListener('mouseup', onUp);
+            document.addEventListener('mouseup', onUp, getPassiveSupported() ? { passive: true } : false);
         }
 
         /**
          * Executes the update function
          */
         function callUpdateCallback() {
-            updateCallback.call(sourceEl, targetX, targetY);
+            updateCallback.call(sourceEl, targetX, targetY, prevTargetX, prevTargetY);
+            prevTargetX = targetX;
+            prevTargetY = targetY;
         }
 
         /**
@@ -208,7 +212,7 @@
          */
         function normalizeEvent(ev) {
             if (ev.type === 'touchmove' || ev.type === 'touchstart' || ev.type === 'touchend') {
-                var touch = ev.targetTouches[0] || ev.changedTouches[0];
+                var touch = ev.changedTouches[0];
                 return {
                     x: touch.clientX,
                     y: touch.clientY,
